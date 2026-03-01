@@ -1,8 +1,21 @@
 # DevTools Translator
 
+[![Main Branch](https://img.shields.io/badge/branch-main-0b7285)](https://github.com/saagar210/DevToolsTranslator/tree/main)
+[![Desktop Release CI](https://img.shields.io/github/actions/workflow/status/saagar210/DevToolsTranslator/release-internal-beta.yml?branch=main&label=desktop%20release%20ci)](https://github.com/saagar210/DevToolsTranslator/actions/workflows/release-internal-beta.yml)
+[![Perf & Reliability](https://img.shields.io/github/actions/workflow/status/saagar210/DevToolsTranslator/perf-reliability-regression.yml?branch=main&label=perf%20%26%20reliability)](https://github.com/saagar210/DevToolsTranslator/actions/workflows/perf-reliability-regression.yml)
+
 Turn noisy DevTools activity into a clear story you can actually use.
 
 DevTools Translator captures browser events, organizes them into human-readable timelines, highlights likely issues, and lets you export evidence bundles you can share safely.
+
+## 30-Second Tour
+
+- **You click Start Capture on a tab.**
+- **We collect and organize DevTools activity for that session.**
+- **You get a clean timeline, network view, and findings summary.**
+- **You export a safe share bundle when you need help from others.**
+
+If Chrome DevTools feels noisy or overwhelming, this gives you the same signal in plain language.
 
 ## Why This Exists
 
@@ -58,6 +71,13 @@ It helps you move from “I have logs” to “I understand what happened.”
 8. Use the tab for 15–30 seconds.
 9. Click **Stop**.
 10. Open **Sessions** and review **Timeline**, **Network**, and **Findings**.
+
+## Why It Feels Easier Than Raw DevTools
+
+- It groups related events into interactions instead of showing a giant unstructured stream.
+- It links findings directly to evidence, so you can see exactly why a finding exists.
+- It keeps privacy controls explicit (`metadata_only`, redaction, share-safe exports).
+- It is designed for mixed-skill teams, not just deep DevTools experts.
 
 ## What You’ll See In The App
 

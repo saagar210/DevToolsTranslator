@@ -1,0 +1,44 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "DevTools Translator",
+  "version": "0.1.0",
+  "identifier": "com.devtoolstranslator.desktop",
+  "build": {
+    "beforeBuildCommand": "pnpm --filter @dtt/desktop-ui build",
+    "frontendDist": "../ui/.vite-dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "DevTools Translator",
+        "width": 1280,
+        "height": 840,
+        "minWidth": 1024,
+        "minHeight": 680,
+        "resizable": true
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "app",
+      "dmg",
+      "msi",
+      "deb",
+      "appimage"
+    ],
+    "macOS": {
+      "hardenedRuntime": true
+    }
+  },
+  "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": [
+          "dtt"
+        ]
+      }
+    }
+  }
+}

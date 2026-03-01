@@ -1,0 +1,214 @@
+name: release-internal-beta
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semver beta version (for example 0.1.0-beta.2)
+        required: true
+        type: string
+      notes:
+        description: Release notes markdown
+        required: false
+        default: Internal beta release
+        type: string
+      dry_run:
+        description: Run release in dry-run mode
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  package-desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos
+            runs_on: macos-latest
+            release_script: release:desktop:mac
+            release_script_dry: release:desktop:mac:dry-run
+            output_dir: desktop
+          - platform: windows
+            runs_on: windows-latest
+            release_script: release:desktop:windows
+            release_script_dry: release:desktop:windows:dry-run
+            output_dir: desktop-windows
+          - platform: linux
+            runs_on: ubuntu-latest
+            release_script: release:desktop:linux
+            release_script_dry: release:desktop:linux:dry-run
+            output_dir: desktop-linux
+    runs-on: ${{ matrix.runs_on }}
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Package desktop artifacts
+        shell: bash
+        run: |
+          if [ "$RELEASE_DRY_RUN" = "true" ]; then
+            pnpm run ${{ matrix.release_script_dry }} -- --version "$RELEASE_VERSION"
+          else
+            pnpm run ${{ matrix.release_script }} -- --version "$RELEASE_VERSION"
+          fi
+
+      - name: Upload desktop artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: internal-beta-${{ inputs.version }}-${{ matrix.platform }}
+          path: dist/releases/internal-beta/${{ inputs.version }}/${{ matrix.output_dir }}
+
+  package-extension:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build extension
+        run: pnpm --filter @dtt/extension build
+
+      - name: Package extension artifacts
+        shell: bash
+        run: |
+          if [ "$RELEASE_DRY_RUN" = "true" ]; then
+            node scripts/release/package_extension_beta.mjs --version "$RELEASE_VERSION" --dry-run
+          else
+            node scripts/release/package_extension_beta.mjs --version "$RELEASE_VERSION"
+          fi
+
+      - name: Upload extension artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: internal-beta-${{ inputs.version }}-extension
+          path: dist/releases/internal-beta/${{ inputs.version }}/extension
+
+  assemble-release:
+    runs-on: ubuntu-latest
+    needs: [package-desktop, package-extension]
+    permissions:
+      contents: write
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_NOTES: ${{ inputs.notes }}
+      RELEASE_DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download mac artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: internal-beta-${{ inputs.version }}-macos
+          path: dist/releases/internal-beta/${{ inputs.version }}/desktop
+
+      - name: Download windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: internal-beta-${{ inputs.version }}-windows
+          path: dist/releases/internal-beta/${{ inputs.version }}/desktop-windows
+
+      - name: Download linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: internal-beta-${{ inputs.version }}-linux
+          path: dist/releases/internal-beta/${{ inputs.version }}/desktop-linux
+
+      - name: Download extension artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: internal-beta-${{ inputs.version }}-extension
+          path: dist/releases/internal-beta/${{ inputs.version }}/extension
+
+      - name: Build combined release manifest
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const root = process.cwd();
+          const version = process.env.RELEASE_VERSION;
+          const base = path.join(root, 'dist', 'releases', 'internal-beta', version);
+          const read = (p) => (fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null);
+          const manifest = {
+            v: 1,
+            channel: 'internal_beta',
+            version,
+            dry_run: process.env.RELEASE_DRY_RUN === 'true',
+            notes_md: process.env.RELEASE_NOTES || '',
+            desktop: {
+              macos: read(path.join(base, 'desktop', 'release-manifest.v1.json')),
+              windows: read(path.join(base, 'desktop-windows', 'release-manifest.v1.json')),
+              linux: read(path.join(base, 'desktop-linux', 'release-manifest.v1.json')),
+            },
+            extension: read(path.join(base, 'extension', 'release-manifest.v1.json')),
+          };
+          fs.writeFileSync(
+            path.join(base, 'release-manifest.v1.json'),
+            `${JSON.stringify(manifest, null, 2)}\n`,
+            'utf8',
+          );
+          NODE
+
+      - name: Upload combined release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: internal-beta-${{ inputs.version }}-combined
+          path: dist/releases/internal-beta/${{ inputs.version }}
+
+      - name: Create draft prerelease
+        if: ${{ inputs.dry_run == false }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          TAG="v${RELEASE_VERSION}"
+          BASE="dist/releases/internal-beta/${RELEASE_VERSION}"
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$TAG" \
+            --notes "$RELEASE_NOTES" \
+            --prerelease \
+            --draft \
+            "$BASE/release-manifest.v1.json" \
+            "$BASE/desktop/checksums.sha256" \
+            "$BASE/desktop/release-manifest.v1.json" \
+            "$BASE/desktop-windows/checksums.sha256" \
+            "$BASE/desktop-windows/release-manifest.v1.json" \
+            "$BASE/desktop-linux/checksums.sha256" \
+            "$BASE/desktop-linux/release-manifest.v1.json" \
+            "$BASE/extension/checksums.sha256" \
+            "$BASE/extension/release-manifest.v1.json"

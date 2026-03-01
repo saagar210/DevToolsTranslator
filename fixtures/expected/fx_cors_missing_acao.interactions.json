@@ -1,0 +1,8 @@
+{
+  "fixture_id": "fx_phase4_preflight",
+  "expectations": {
+    "interactions_min": 1,
+    "member_rows_min": 2,
+    "contains_pairing_rule": "OPTIONS and follow-up request are grouped within 2000ms"
+  }
+}

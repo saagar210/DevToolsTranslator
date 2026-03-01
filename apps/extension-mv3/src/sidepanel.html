@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DevTools Translator Side Panel</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 12px;
+        background: #f3f4ef;
+        color: #1f2937;
+        font-family: 'Avenir Next', 'Segoe UI', sans-serif;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid #d1d5db;
+        border-radius: 12px;
+        padding: 12px;
+      }
+      .status {
+        margin-top: 8px;
+        padding: 8px;
+        border-radius: 8px;
+        background: #ccfbf1;
+      }
+      .actions {
+        margin-top: 10px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+      }
+      button {
+        border: 1px solid #d1d5db;
+        background: white;
+        border-radius: 8px;
+        padding: 7px 8px;
+        cursor: pointer;
+      }
+      button.primary {
+        border-color: #115e59;
+        background: #0f766e;
+        color: #ecfeff;
+      }
+      label {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      details {
+        margin-top: 10px;
+      }
+      input[type='text'],
+      input[type='number'] {
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 4px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        padding: 7px;
+      }
+      .meta {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #4b5563;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>Live Capture Companion</h2>
+      <p>Use this panel while browsing to stay connected and capture-ready.</p>
+      <div class="status" role="status" aria-live="polite">
+        <strong id="status-label">Not paired yet</strong>
+        <div id="status-helper">Click Find Desktop App to begin.</div>
+      </div>
+      <div class="actions">
+        <button id="find-desktop-app" class="primary" type="button">Find Desktop App</button>
+        <button id="open-desktop" type="button">Open Desktop App</button>
+        <button id="connect" type="button">Connect</button>
+        <button id="disconnect" type="button">Disconnect</button>
+        <button id="refresh-state" type="button">Refresh</button>
+        <button id="open-side-panel" type="button" disabled>Side Panel Open</button>
+      </div>
+      <label><input id="consent-enabled" type="checkbox" />I allow capture for this browser.</label>
+      <label><input id="ui-capture-enabled" type="checkbox" />Enable optional UI capture support.</label>
+
+      <details>
+        <summary>Advanced manual pairing</summary>
+        <label for="pairing-port">Pairing Port</label>
+        <input id="pairing-port" type="number" min="32123" max="32133" />
+        <label for="pairing-token">Pairing Token</label>
+        <input id="pairing-token" type="text" />
+        <button id="save-pairing" type="button">Save Advanced Pairing</button>
+      </details>
+
+      <div class="meta">Active session: <span id="active-session">none</span></div>
+      <div class="meta">Buffered events: <span id="buffered-events">0</span></div>
+      <div class="meta">Trusted device: <span id="trusted-device">none</span></div>
+    </div>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

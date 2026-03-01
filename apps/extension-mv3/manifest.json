@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "DevTools Translator",
+  "version": "0.1.0",
+  "description": "Capture CDP events and stream to DevTools Translator desktop runtime.",
+  "homepage_url": "https://example.com/privacy",
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "permissions": ["debugger", "storage", "tabs", "scripting", "sidePanel"],
+  "host_permissions": ["http://127.0.0.1/*", "http://localhost/*"],
+  "optional_host_permissions": ["<all_urls>"]
+}

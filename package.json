@@ -1,0 +1,40 @@
+{
+  "name": "devtools-translator",
+  "private": true,
+  "version": "0.1.0",
+  "description": "DevTools Translator scaffold and documentation pack",
+  "packageManager": "pnpm@10",
+  "scripts": {
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "build": "pnpm -r --if-present build",
+    "release:desktop:mac:dry-run": "node scripts/release/release_desktop_mac.mjs --dry-run",
+    "release:desktop:mac": "node scripts/release/release_desktop_mac.mjs",
+    "release:desktop:windows:dry-run": "node scripts/release/release_desktop_windows.mjs --dry-run",
+    "release:desktop:windows": "node scripts/release/release_desktop_windows.mjs",
+    "release:desktop:linux:dry-run": "node scripts/release/release_desktop_linux.mjs --dry-run",
+    "release:desktop:linux": "node scripts/release/release_desktop_linux.mjs",
+    "release:staged-public:dry-run": "node scripts/release/release_staged_public_prerelease.mjs --dry-run",
+    "release:staged-public": "node scripts/release/release_staged_public_prerelease.mjs",
+    "release:extension:beta": "node scripts/release/package_extension_beta.mjs",
+    "release:extension:public:dry-run": "node scripts/release/package_extension_public.mjs --dry-run",
+    "release:extension:public": "node scripts/release/package_extension_public.mjs",
+    "release:extension:cws:dry-run": "node scripts/release/publish_extension_cws.mjs --dry-run",
+    "release:extension:cws": "node scripts/release/publish_extension_cws.mjs",
+    "release:updater-feed:dry-run": "node scripts/release/generate_updater_feed.mjs --dry-run",
+    "release:updater-feed": "node scripts/release/generate_updater_feed.mjs",
+    "release:promotion:readiness": "node scripts/release/check_promotion_readiness.mjs",
+    "perf:phase11:gate": "node scripts/perf/run_perf_gate.mjs",
+    "perf:phase12:endurance:ci": "node scripts/perf/run_endurance_suite.mjs --mode ci",
+    "perf:phase13:endurance:nightly": "node scripts/perf/run_endurance_suite.mjs --mode nightly",
+    "perf:phase13:endurance:weekly": "node scripts/perf/run_endurance_suite.mjs --mode weekly",
+    "format:check": "prettier --check \"**/*.{md,json,yml,yaml,ts,toml}\"",
+    "format:write": "prettier --write \"**/*.{md,json,yml,yaml,ts,toml}\""
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.280",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  }
+}

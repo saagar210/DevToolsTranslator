@@ -1,0 +1,21 @@
+# Canonical verification commands for DevTools Translator scaffold
+pnpm -r lint
+pnpm -r typecheck
+pnpm -r test
+pnpm -r build
+pnpm --filter @dtt/extension lint
+pnpm --filter @dtt/extension test
+pnpm --filter @dtt/extension build
+pnpm --filter @dtt/desktop-ui test
+pnpm --filter @dtt/desktop-ui build
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+cargo build --workspace
+cargo test -p dtt-desktop-core
+cargo test -p dtt-storage
+cargo build -p dtt-desktop-core
+cargo test -p dtt-detectors
+cargo test -p dtt-correlation
+cargo test -p dtt-export
+cargo test -p dtt-integrity

@@ -1,0 +1,8 @@
+[package]
+name = "dtt-correlation"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+blake3 = "1.5"
+dtt-core = { path = "../dtt-core" }

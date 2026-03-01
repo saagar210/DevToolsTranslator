@@ -1,0 +1,17 @@
+{
+  "v": 1,
+  "packs": {
+    "general": {
+      "enabled": true
+    },
+    "llm": {
+      "enabled": true
+    }
+  },
+  "detectors": {},
+  "params": {
+    "threshold.http_5xx_burst.count": 2,
+    "threshold.long_request_duration_ms": 2000,
+    "threshold.large_js_response_bytes": 500000
+  }
+}

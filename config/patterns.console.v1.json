@@ -1,0 +1,13 @@
+{
+  "v": 1,
+  "patterns": [
+    { "id": "cors", "regex": "cors" },
+    { "id": "csp", "regex": "content-security-policy|csp" },
+    { "id": "mixed_content", "regex": "mixed content" },
+    { "id": "blocked_by_client", "regex": "blocked_by_client" },
+    { "id": "dns", "regex": "dns|name_not_resolved" },
+    { "id": "tls", "regex": "ssl|tls|certificate" },
+    { "id": "chunk_load_failed", "regex": "chunk load failed" },
+    { "id": "network.failed_fetch", "regex": "failed to fetch" }
+  ]
+}

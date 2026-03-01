@@ -1,0 +1,17 @@
+{
+  "name": "@dtt/extension",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Chrome MV3 extension capture runtime",
+  "type": "module",
+  "scripts": {
+    "lint": "pnpm run typecheck",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "pnpm run build && node --test tests/*.test.mjs",
+    "build": "tsc -p tsconfig.build.json && node -e \"const fs=require('node:fs');fs.cpSync('manifest.json','dist/manifest.json');fs.cpSync('src/popup.html','dist/popup.html');fs.cpSync('src/sidepanel.html','dist/sidepanel.html');\""
+  },
+  "devDependencies": {
+    "@types/chrome": "0.0.280",
+    "typescript": "5.9.3"
+  }
+}

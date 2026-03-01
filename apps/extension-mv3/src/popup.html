@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DevTools Translator</title>
+    <style>
+      :root {
+        --bg: #f3f4ef;
+        --panel: #ffffff;
+        --text: #1f2937;
+        --muted: #4b5563;
+        --border: #d1d5db;
+        --accent: #0f766e;
+        --accent-soft: #ccfbf1;
+        --focus: #fb923c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 12px;
+        width: 360px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'Avenir Next', 'Segoe UI', sans-serif;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 16px;
+      }
+      p {
+        margin: 0;
+      }
+      .subtle {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .status {
+        margin-top: 10px;
+        padding: 8px;
+        background: var(--accent-soft);
+        border-radius: 8px;
+      }
+      .status strong {
+        display: block;
+        font-size: 13px;
+      }
+      .status span {
+        display: block;
+        margin-top: 3px;
+        font-size: 12px;
+      }
+      .section {
+        margin-top: 12px;
+      }
+      .section h2 {
+        margin: 0 0 8px;
+        font-size: 13px;
+      }
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+      }
+      button {
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 8px;
+        padding: 7px 8px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      button.primary {
+        background: var(--accent);
+        color: #ecfeff;
+        border-color: #115e59;
+      }
+      button:focus-visible,
+      input:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+      label {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        margin-top: 8px;
+        font-size: 12px;
+      }
+      input[type='number'],
+      input[type='text'] {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 7px;
+        font-size: 12px;
+      }
+      details {
+        margin-top: 12px;
+      }
+      details summary {
+        cursor: pointer;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .meta {
+        margin-top: 8px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .advanced-grid {
+        display: grid;
+        gap: 8px;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>DevTools Translator</h1>
+      <p class="subtle">Simple capture setup for beginner users.</p>
+
+      <div class="status" role="status" aria-live="polite">
+        <strong id="status-label">Not paired yet</strong>
+        <span id="status-helper">Click Find Desktop App to begin.</span>
+      </div>
+
+      <div class="section">
+        <h2>Step 1: Connect</h2>
+        <div class="actions">
+          <button id="find-desktop-app" class="primary" type="button">Find Desktop App</button>
+          <button id="open-desktop" type="button">Open Desktop App</button>
+          <button id="connect" type="button">Connect</button>
+          <button id="disconnect" type="button">Disconnect</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Step 2: Confirm Capture</h2>
+        <label><input id="consent-enabled" type="checkbox" />I allow capture for this browser.</label>
+        <label><input id="ui-capture-enabled" type="checkbox" />Enable optional UI capture support.</label>
+      </div>
+
+      <div class="section">
+        <h2>Helpful Tools</h2>
+        <div class="actions">
+          <button id="open-side-panel" type="button">Open Side Panel</button>
+          <button id="refresh-state" type="button">Refresh Status</button>
+        </div>
+      </div>
+
+      <details>
+        <summary>Advanced details (manual fallback)</summary>
+        <div class="advanced-grid">
+          <label for="pairing-port">Pairing Port</label>
+          <input id="pairing-port" type="number" min="32123" max="32133" placeholder="32123" />
+
+          <label for="pairing-token">Pairing Token</label>
+          <input id="pairing-token" type="text" placeholder="paste token once if discovery fails" />
+
+          <button id="save-pairing" type="button">Save Advanced Pairing</button>
+        </div>
+      </details>
+
+      <div class="meta">Active session: <span id="active-session">none</span></div>
+      <div class="meta">Buffered events: <span id="buffered-events">0</span></div>
+      <div class="meta">Trusted device: <span id="trusted-device">none</span></div>
+    </div>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

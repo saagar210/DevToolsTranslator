@@ -1,0 +1,16 @@
+{
+  "v": 1,
+  "provider_hosts": [
+    "api.openai.com",
+    "anthropic.com",
+    "googleapis.com",
+    "azure.com"
+  ],
+  "weights": {
+    "host_match": 30,
+    "streaming_signal": 25,
+    "content_type": 20,
+    "payload_markers": 25
+  },
+  "primary_threshold": 70
+}

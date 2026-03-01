@@ -1,0 +1,9 @@
+{
+  "fixture_id": "fx_phase4_page_api",
+  "expectations": {
+    "interactions_min": 2,
+    "member_rows_min": 6,
+    "contains_kinds": ["page_load", "api_burst"],
+    "primary_hint": "api_burst should prefer req-api over telemetry request"
+  }
+}

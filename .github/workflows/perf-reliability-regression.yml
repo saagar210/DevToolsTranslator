@@ -1,0 +1,98 @@
+name: perf-reliability-regression
+
+on:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'
+    - cron: '0 7 * * 0'
+
+jobs:
+  perf-reliability:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        lane: [pr, nightly, weekly]
+    if: |
+      (github.event_name == 'schedule' && (
+        (github.event.schedule == '0 6 * * *' && matrix.lane == 'nightly') ||
+        (github.event.schedule == '0 7 * * 0' && matrix.lane == 'weekly')
+      )) ||
+      (github.event_name != 'schedule' && matrix.lane == 'pr')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Canonical verify subset
+        run: |
+          pnpm -r lint
+          pnpm -r typecheck
+          cargo test -p dtt-storage reliability -- --nocapture
+          cargo test -p dtt-storage perf -- --nocapture
+
+      - name: Run perf drift gate
+        run: node scripts/perf/run_perf_gate.mjs > perf-gate-report.json
+
+      - name: Run endurance suite
+        run: |
+          if [[ "${{ matrix.lane }}" == "weekly" ]]; then
+            node scripts/perf/run_endurance_suite.mjs --mode weekly > perf-endurance-report.json
+          elif [[ "${{ matrix.lane }}" == "nightly" ]]; then
+            node scripts/perf/run_endurance_suite.mjs --mode nightly > perf-endurance-report.json
+          else
+            node scripts/perf/run_endurance_suite.mjs --mode ci > perf-endurance-report.json
+          fi
+
+      - name: Build release health scorecard inputs
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const perf = JSON.parse(fs.readFileSync('perf-gate-report.json', 'utf8'));
+          const endurance = JSON.parse(fs.readFileSync('perf-endurance-report.json', 'utf8'));
+          const payload = {
+            v: 1,
+            lane: process.env.LANE || 'pr',
+            generated_at_ms: Date.now(),
+            scorecard_inputs: {
+              perf_gate_overall: perf.overall ?? 'unknown',
+              endurance_overall: endurance.overall ?? 'unknown',
+              fail_checks: [
+                ...(perf.checks ?? []).filter((check) => check.status === 'fail').map((check) => check.key),
+                ...(endurance.lanes ?? [])
+                  .flatMap((lane) => lane.checks ?? [])
+                  .filter((check) => check.status === 'fail')
+                  .map((check) => check.key),
+              ],
+            },
+          };
+          fs.writeFileSync('release-health-scorecard-inputs.json', `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+          NODE
+        env:
+          LANE: ${{ matrix.lane }}
+
+      - name: Upload perf report
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-gate-report-${{ matrix.lane }}
+          path: |
+            perf-gate-report.json
+            perf-endurance-report.json
+            release-health-scorecard-inputs.json

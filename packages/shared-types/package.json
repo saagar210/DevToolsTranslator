@@ -1,0 +1,17 @@
+{
+  "name": "@dtt/shared-types",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Cross-runtime contracts for DevTools Translator",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "lint": "pnpm run typecheck",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "pnpm run typecheck",
+    "build": "tsc -p tsconfig.build.json"
+  }
+}

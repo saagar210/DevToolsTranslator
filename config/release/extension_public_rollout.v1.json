@@ -1,0 +1,14 @@
+{
+  "v": 1,
+  "channel": "chrome_store_public",
+  "stages": [
+    { "stage": "pct_5", "rollout_pct": 5, "min_soak_hours": 24 },
+    { "stage": "pct_25", "rollout_pct": 25, "min_soak_hours": 24 },
+    { "stage": "pct_50", "rollout_pct": 50, "min_soak_hours": 24 },
+    { "stage": "pct_100", "rollout_pct": 100, "min_soak_hours": 24 }
+  ],
+  "incident_gate": {
+    "max_blocking_incidents": 0,
+    "max_failed_audits": 0
+  }
+}

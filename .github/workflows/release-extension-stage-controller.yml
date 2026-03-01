@@ -1,0 +1,72 @@
+name: release-extension-stage-controller
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Extension version to evaluate
+        required: true
+        type: string
+      stage:
+        description: Target stage
+        required: true
+        default: pct_5
+        type: choice
+        options:
+          - pct_5
+          - pct_25
+          - pct_50
+          - pct_100
+      dry_run:
+        description: Dry-run only
+        required: true
+        default: true
+        type: boolean
+  schedule:
+    - cron: '15 * * * *'
+
+jobs:
+  controller:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ inputs.version || '0.0.0-stage-controller' }}
+      RELEASE_STAGE: ${{ inputs.stage || 'pct_5' }}
+      RELEASE_DRY_RUN: ${{ github.event_name == 'schedule' && 'true' || inputs.dry_run }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Evaluate extension stage
+        run: |
+          PREV_STAGE="$RELEASE_STAGE"
+          if [[ "$RELEASE_STAGE" == "pct_25" ]]; then PREV_STAGE="pct_5"; fi
+          if [[ "$RELEASE_STAGE" == "pct_50" ]]; then PREV_STAGE="pct_25"; fi
+          if [[ "$RELEASE_STAGE" == "pct_100" ]]; then PREV_STAGE="pct_50"; fi
+
+          if [[ "$RELEASE_DRY_RUN" == "true" ]]; then
+            node scripts/release/evaluate_extension_stage.mjs --dry-run --version "$RELEASE_VERSION" --stage "$PREV_STAGE"
+            node scripts/release/advance_extension_stage.mjs --dry-run --version "$RELEASE_VERSION" --from-stage "$PREV_STAGE" --to-stage "$RELEASE_STAGE"
+          else
+            node scripts/release/evaluate_extension_stage.mjs --version "$RELEASE_VERSION" --stage "$PREV_STAGE"
+            node scripts/release/advance_extension_stage.mjs --version "$RELEASE_VERSION" --from-stage "$PREV_STAGE" --to-stage "$RELEASE_STAGE"
+          fi
+
+      - name: Upload controller artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-stage-controller-${{ env.RELEASE_VERSION }}-${{ env.RELEASE_STAGE }}
+          path: dist/releases/chrome-store-public/${{ env.RELEASE_VERSION }}/controller

@@ -1,0 +1,22 @@
+{
+  "v": 2,
+  "channel": "chrome_store_public",
+  "stages": [
+    { "stage": "pct_5", "rollout_pct": 5, "min_soak_hours": 24 },
+    { "stage": "pct_25", "rollout_pct": 25, "min_soak_hours": 24 },
+    { "stage": "pct_50", "rollout_pct": 50, "min_soak_hours": 24 },
+    { "stage": "pct_100", "rollout_pct": 100, "min_soak_hours": 24 }
+  ],
+  "auto_pause_block": {
+    "on_health_degradation": true,
+    "action": "auto_pause_and_block"
+  },
+  "blocking_rules": {
+    "require_manual_smoke_pass": true,
+    "require_compliance_pass": true,
+    "require_signature_verified": true,
+    "require_telemetry_audit_pass": true,
+    "max_critical_anomalies": 0,
+    "max_blocking_incidents": 0
+  }
+}

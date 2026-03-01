@@ -1,0 +1,9 @@
+{
+  "fixture_id": "fx_phase4_llm_regen",
+  "expectations": {
+    "interactions_min": 2,
+    "member_rows_min": 4,
+    "contains_kinds": ["llm_message", "llm_regen"],
+    "primary_hint": "llm interactions should select highest scored LLM request"
+  }
+}

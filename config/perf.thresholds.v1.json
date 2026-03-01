@@ -1,0 +1,17 @@
+{
+  "v": 1,
+  "policy": {
+    "warn_drift_pct": 10,
+    "fail_drift_pct": 25
+  },
+  "hard_caps": {
+    "sustained_capture_memory_peak_bytes": 2147483648,
+    "bundle_inspect_resolve_p95_ms": 500,
+    "normalization_min_events_per_s": 2000
+  },
+  "baselines": {
+    "sustained_capture_memory_peak_bytes": 805306368,
+    "bundle_inspect_resolve_p95_ms": 240,
+    "normalization_events_per_s": 2600
+  }
+}

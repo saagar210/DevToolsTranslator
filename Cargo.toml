@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = [
+  "apps/desktop-tauri/src-tauri",
+  "crates/dtt-core",
+  "crates/dtt-storage",
+  "crates/dtt-correlation",
+  "crates/dtt-detectors",
+  "crates/dtt-export",
+  "crates/dtt-integrity"
+]
+
+[workspace.package]
+edition = "2021"
+license = "UNLICENSED"
+version = "0.1.0"
+
+[workspace.metadata.devtools-translator]
+mode = "scaffold_only"
+notes = "No implementation code in this scaffold run"

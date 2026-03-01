@@ -1,0 +1,16 @@
+{
+  "v": 1,
+  "required_checks": [
+    "manifest_permission_allowlist",
+    "privacy_policy_url_present",
+    "data_use_declaration_present",
+    "host_permission_inventory",
+    "version_monotonicity"
+  ],
+  "permission_allowlist": ["debugger", "storage", "tabs", "scripting"],
+  "required_artifacts": [
+    "docs/RELEASE_RUNBOOK.md",
+    "docs/INCIDENT_RUNBOOK.md",
+    "docs/PHASE6_SMOKE_EVIDENCE.md"
+  ]
+}

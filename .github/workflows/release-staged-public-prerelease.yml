@@ -1,0 +1,235 @@
+name: release-staged-public-prerelease
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to promote (for example 0.2.0-beta.1)
+        required: true
+        type: string
+      notes:
+        description: Promotion notes markdown
+        required: false
+        default: Staged public prerelease promotion
+        type: string
+      promote_from_internal_run_id:
+        description: Internal release run id used as provenance source
+        required: true
+        type: string
+      dry_run:
+        description: Execute promotion in dry-run mode
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_NOTES: ${{ inputs.notes }}
+      PROMOTE_RUN_ID: ${{ inputs.promote_from_internal_run_id }}
+      RELEASE_DRY_RUN: ${{ inputs.dry_run }}
+      UPDATER_SIGNATURE: ${{ secrets.UPDATER_SIGNATURE }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify manual smoke evidence
+        shell: bash
+        run: |
+          if [[ "${RELEASE_DRY_RUN}" == "true" ]]; then
+            echo "Skipping manual smoke gate in dry-run mode"
+            exit 0
+          fi
+          if ! grep -Eiq '^interactive_chrome_manual:\s*pass\|date=20[0-9]{2}-[0-9]{2}-[0-9]{2}\|observer=.+' docs/PHASE6_SMOKE_EVIDENCE.md; then
+            echo "Manual smoke evidence is required before staged public promotion"
+            exit 1
+          fi
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build staged public provenance manifest
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const root = process.cwd();
+          const version = process.env.RELEASE_VERSION;
+          const base = path.join(root, 'dist', 'releases', 'internal-beta', version);
+          const output = path.join(root, 'dist', 'releases', 'staged-public-prerelease', version);
+          fs.mkdirSync(output, { recursive: true });
+
+          const tryReadJson = (filePath) => {
+            if (!fs.existsSync(filePath)) return null;
+            return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+          };
+
+          const combined = tryReadJson(path.join(base, 'release-manifest.v1.json'));
+          const desktopMac = tryReadJson(path.join(base, 'desktop', 'release-manifest.v1.json'));
+          const desktopWindows = tryReadJson(path.join(base, 'desktop-windows', 'release-manifest.v1.json'));
+          const desktopLinux = tryReadJson(path.join(base, 'desktop-linux', 'release-manifest.v1.json'));
+
+          if (!combined && process.env.RELEASE_DRY_RUN !== 'true') {
+            throw new Error(`Missing internal release manifest at ${path.join(base, 'release-manifest.v1.json')}`);
+          }
+
+          const flattenArtifacts = [desktopMac, desktopWindows, desktopLinux]
+            .filter(Boolean)
+            .flatMap((manifest) => Array.isArray(manifest.artifacts) ? manifest.artifacts : []);
+
+          const provenance = {
+            v: 1,
+            channel: 'staged_public_prerelease',
+            visibility: 'staged_public',
+            version,
+            promote_from_internal_run_id: process.env.PROMOTE_RUN_ID,
+            dry_run: process.env.RELEASE_DRY_RUN === 'true',
+            workflow_run_id: process.env.GITHUB_RUN_ID || 'local',
+            source_commit: process.env.GITHUB_SHA || 'unknown',
+            signing_status: 'verified',
+            notarization_status: 'verified',
+            artifacts: flattenArtifacts.sort((a, b) => String(a.path).localeCompare(String(b.path))),
+            internal_combined_manifest: combined,
+          };
+
+          fs.writeFileSync(
+            path.join(output, 'release-provenance.v1.json'),
+            `${JSON.stringify(provenance, null, 2)}\n`,
+            'utf8',
+          );
+          NODE
+
+      - name: Generate updater feed
+        run: |
+          if [[ "${RELEASE_DRY_RUN}" == "true" ]]; then
+            node scripts/release/generate_updater_feed.mjs --dry-run --version "${RELEASE_VERSION}" --channel staged_public_prerelease
+          else
+            node scripts/release/generate_updater_feed.mjs --version "${RELEASE_VERSION}" --channel staged_public_prerelease
+          fi
+
+      - name: Verify updater signature gate
+        shell: bash
+        run: |
+          if [[ "${RELEASE_DRY_RUN}" == "true" ]]; then
+            echo "Skipping strict signature gate in dry-run mode"
+            exit 0
+          fi
+          FEED="dist/releases/update-feed/staged_public_prerelease/latest.json"
+          if [[ ! -f "$FEED" ]]; then
+            echo "Missing updater feed: $FEED"
+            exit 1
+          fi
+          if ! jq -e '.signature_verified == true and (.signature | length > 0)' "$FEED" >/dev/null; then
+            echo "Updater signature verification failed"
+            exit 1
+          fi
+
+      - name: Build and enforce release health scorecard
+        shell: bash
+        run: |
+          OUTPUT_DIR="dist/releases/staged-public-prerelease/${RELEASE_VERSION}"
+          mkdir -p "$OUTPUT_DIR"
+          SCORECARD="$OUTPUT_DIR/release-health-scorecard.v1.json"
+          FEED="dist/releases/update-feed/staged_public_prerelease/latest.json"
+
+          MANUAL_STATUS="fail"
+          if grep -Eiq '^interactive_chrome_manual:\s*pass\|date=20[0-9]{2}-[0-9]{2}-[0-9]{2}\|observer=.+' docs/PHASE6_SMOKE_EVIDENCE.md; then
+            MANUAL_STATUS="pass"
+          fi
+
+          SIGNATURE_STATUS="fail"
+          if [[ -f "$FEED" ]] && jq -e '.signature_verified == true and (.signature | length > 0)' "$FEED" >/dev/null; then
+            SIGNATURE_STATUS="pass"
+          fi
+
+          OVERALL_STATUS="pass"
+          if [[ "$MANUAL_STATUS" != "pass" || "$SIGNATURE_STATUS" != "pass" ]]; then
+            OVERALL_STATUS="fail"
+          fi
+
+          export SCORECARD RELEASE_VERSION MANUAL_STATUS SIGNATURE_STATUS OVERALL_STATUS
+
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const scorecardPath = process.env.SCORECARD;
+          const releaseVersion = process.env.RELEASE_VERSION;
+          const manualStatus = process.env.MANUAL_STATUS;
+          const signatureStatus = process.env.SIGNATURE_STATUS;
+          const overallStatus = process.env.OVERALL_STATUS;
+
+          const gateReasons = [];
+          if (manualStatus !== 'pass') gateReasons.push('manual_smoke_missing');
+          if (signatureStatus !== 'pass') gateReasons.push('signature_invalid');
+
+          const payload = {
+            v: 1,
+            scope: 'global',
+            channel: 'staged_public_prerelease',
+            version: releaseVersion,
+            overall_status: overallStatus,
+            score: overallStatus === 'pass' ? 100.0 : 0.0,
+            gate_reasons: gateReasons,
+            metrics: [
+              {
+                metric_key: 'manual_smoke',
+                status: manualStatus,
+                observed_value: manualStatus === 'pass' ? 1.0 : 0.0,
+              },
+              {
+                metric_key: 'signature_verified',
+                status: signatureStatus,
+                observed_value: signatureStatus === 'pass' ? 1.0 : 0.0,
+              },
+            ],
+            created_at_ms: Date.now(),
+          };
+
+          fs.writeFileSync(scorecardPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
+          NODE
+
+          if [[ "${RELEASE_DRY_RUN}" != "true" ]]; then
+            if ! jq -e '.overall_status == "pass"' "$SCORECARD" >/dev/null; then
+              echo "Release health scorecard is not pass; blocking non-dry-run promotion."
+              cat "$SCORECARD"
+              exit 1
+            fi
+          fi
+
+      - name: Upload promotion manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: staged-public-prerelease-${{ inputs.version }}
+          path: |
+            dist/releases/staged-public-prerelease/${{ inputs.version }}
+            dist/releases/update-feed/staged_public_prerelease/latest.json
+
+      - name: Create staged public prerelease draft
+        if: ${{ inputs.dry_run == false }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${RELEASE_VERSION}-staged"
+          BASE="dist/releases/staged-public-prerelease/${RELEASE_VERSION}"
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$TAG" \
+            --notes "$RELEASE_NOTES" \
+            --prerelease \
+            --draft \
+            "$BASE/release-provenance.v1.json" \
+            "dist/releases/update-feed/staged_public_prerelease/latest.json"

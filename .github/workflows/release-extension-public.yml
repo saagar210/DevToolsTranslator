@@ -1,0 +1,111 @@
+name: release-extension-public
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Extension version for public rollout
+        required: true
+        type: string
+      stage:
+        description: Rollout stage
+        required: true
+        default: pct_5
+        type: choice
+        options:
+          - pct_5
+          - pct_25
+          - pct_50
+          - pct_100
+      dry_run:
+        description: Dry-run only
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  extension-public:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_STAGE: ${{ inputs.stage }}
+      RELEASE_DRY_RUN: ${{ inputs.dry_run }}
+      CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+      CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+      CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+      CWS_EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build extension package
+        run: pnpm --filter @dtt/extension build
+
+      - name: Package extension (public)
+        run: |
+          if [[ "$RELEASE_DRY_RUN" == "true" ]]; then
+            node scripts/release/package_extension_public.mjs --dry-run --version "$RELEASE_VERSION"
+          else
+            node scripts/release/package_extension_public.mjs --version "$RELEASE_VERSION"
+          fi
+
+      - name: Evaluate rollout stage gates
+        run: |
+          PREV_STAGE="$RELEASE_STAGE"
+          if [[ "$RELEASE_STAGE" == "pct_25" ]]; then PREV_STAGE="pct_5"; fi
+          if [[ "$RELEASE_STAGE" == "pct_50" ]]; then PREV_STAGE="pct_25"; fi
+          if [[ "$RELEASE_STAGE" == "pct_100" ]]; then PREV_STAGE="pct_50"; fi
+
+          if [[ "$RELEASE_DRY_RUN" == "true" ]]; then
+            node scripts/release/evaluate_extension_stage.mjs --dry-run --version "$RELEASE_VERSION" --stage "$PREV_STAGE"
+          else
+            node scripts/release/evaluate_extension_stage.mjs --version "$RELEASE_VERSION" --stage "$PREV_STAGE"
+          fi
+
+      - name: Build controller approval artifact
+        run: |
+          PREV_STAGE="$RELEASE_STAGE"
+          if [[ "$RELEASE_STAGE" == "pct_25" ]]; then PREV_STAGE="pct_5"; fi
+          if [[ "$RELEASE_STAGE" == "pct_50" ]]; then PREV_STAGE="pct_25"; fi
+          if [[ "$RELEASE_STAGE" == "pct_100" ]]; then PREV_STAGE="pct_50"; fi
+
+          if [[ "$RELEASE_DRY_RUN" == "true" ]]; then
+            node scripts/release/advance_extension_stage.mjs --dry-run --version "$RELEASE_VERSION" --from-stage "$PREV_STAGE" --to-stage "$RELEASE_STAGE"
+          else
+            node scripts/release/advance_extension_stage.mjs --version "$RELEASE_VERSION" --from-stage "$PREV_STAGE" --to-stage "$RELEASE_STAGE"
+          fi
+
+      - name: Publish extension rollout stage
+        run: |
+          PREV_STAGE="$RELEASE_STAGE"
+          if [[ "$RELEASE_STAGE" == "pct_25" ]]; then PREV_STAGE="pct_5"; fi
+          if [[ "$RELEASE_STAGE" == "pct_50" ]]; then PREV_STAGE="pct_25"; fi
+          if [[ "$RELEASE_STAGE" == "pct_100" ]]; then PREV_STAGE="pct_50"; fi
+          APPROVAL_FILE="dist/releases/chrome-store-public/$RELEASE_VERSION/controller/advance-${PREV_STAGE}-to-${RELEASE_STAGE}.v1.json"
+          EVIDENCE_PACK_PATH="dist/releases/evidence/extension/$RELEASE_VERSION/$RELEASE_STAGE"
+
+          if [[ "$RELEASE_DRY_RUN" == "true" ]]; then
+            node scripts/release/publish_extension_cws.mjs --dry-run --version "$RELEASE_VERSION" --stage "$RELEASE_STAGE" --approval-file "$APPROVAL_FILE" --evidence-pack-path "$EVIDENCE_PACK_PATH"
+          else
+            node scripts/release/publish_extension_cws.mjs --version "$RELEASE_VERSION" --stage "$RELEASE_STAGE" --approval-file "$APPROVAL_FILE" --evidence-pack-path "$EVIDENCE_PACK_PATH"
+          fi
+
+      - name: Upload extension public artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-public-${{ inputs.version }}-${{ inputs.stage }}
+          path: dist/releases/chrome-store-public/${{ inputs.version }}

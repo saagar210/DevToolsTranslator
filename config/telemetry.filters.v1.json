@@ -1,0 +1,16 @@
+{
+  "v": 1,
+  "host_substrings": [
+    "telemetry",
+    "analytics",
+    "metrics",
+    "sentry",
+    "datadog"
+  ],
+  "path_substrings": [
+    "/telemetry",
+    "/analytics",
+    "/collect",
+    "/events"
+  ]
+}
